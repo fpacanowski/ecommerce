@@ -1,17 +1,59 @@
 class OrdersController < ApplicationController
+
+  class ViewModel < Dry::Struct
+    include Dry.Types
+    attribute :state, String
+    attribute :order_number, String
+    attribute :order_id, String
+    attribute :lines, Array do
+      attribute :product_name, String
+      attribute :quantity, Infra::Types::Integer
+      attribute :unit_price, Infra::Types::Price
+      attribute :total_price, Infra::Types::Price
+    end
+    attribute :buttons do
+      attribute :edit, Bool
+      attribute :pay, Bool
+      attribute :cancel, Bool
+      attribute :invoice, Bool
+    end
+  end
+
   def index
     @orders = Orders::Order.order("id DESC").page(params[:page]).per(10)
   end
 
   def show
-    @order = Orders::Order.find_by_uid(params[:id])
-    @order_lines = Orders::OrderLine.where(order_uid: @order.uid)
-    @shipment = Shipments::Shipment.find_by(order_uid: @order.uid)
-    @invoice = Invoices::Invoice.find_or_initialize_by(order_uid: @order.uid)
+    order_id = params[:id]
+    @invoice = Invoices::Invoice.find_or_initialize_by(order_uid: order_id)
+    order = ordering_service.get_order(order_id)
+    products = order.as_data.keys
+      .map { |product_id| [product_id, product_service.get_product_name(product_id)] }
+      .to_h
+    lines = order.as_data.to_a.map do |product_id, quantity|
+      {
+        product_name: products[product_id] || "UNKNOWN",
+        quantity: quantity,
+        unit_price:  "123.0",
+        total_price:  "123.0",
+      }
+    end
+    @view_model = ViewModel.new(
+      state: "Draft",
+      order_number: '',
+      order_id: order_id,
+      lines: lines,
+      buttons: {
+        edit: false,
+        pay: false,
+        cancel: false,
+        invoice: false,
+      }
+    )
   end
 
-  def new
-    redirect_to edit_order_path(SecureRandom.uuid)
+  def create
+    redirect_to edit_order_path(ordering_service.create_order)
   end
 
   def edit
@@ -70,12 +112,12 @@ class OrdersController < ApplicationController
     head :ok
   end
 
-  def create
-    ApplicationRecord.transaction { submit_order(params[:order_id], params[:customer_id]) }
-    redirect_to order_path(params[:order_id]), notice: "Your order is being submitted"
-  rescue Crm::Customer::NotExists
-    redirect_to order_path(params[:order_id]), alert: "Order can not be submitted! Customer does not exist."
-  end
+  # def create
+  #   ApplicationRecord.transaction { submit_order(params[:order_id], params[:customer_id]) }
+  #   redirect_to order_path(params[:order_id]), notice: "Your order is being submitted"
+  # rescue Crm::Customer::NotExists
+  #   redirect_to order_path(params[:order_id]), alert: "Order can not be submitted! Customer does not exist."
+  # end
 
   def expire
     Orders::Order
