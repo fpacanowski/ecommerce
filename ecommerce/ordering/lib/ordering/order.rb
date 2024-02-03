@@ -8,10 +8,18 @@ module Ordering
     NotSubmitted = Class.new(InvalidState)
     OrderHasExpired = Class.new(InvalidState)
 
+    attr_reader :id
+    attr_reader :number
+    attr_reader :state
+
     def initialize(id)
       @id = id
       @state = :draft
       @basket = Basket.new
+    end
+
+    def create
+      apply OrderCreated.new(data: {order_id: @id})
     end
 
     def submit(order_number)
@@ -77,6 +85,13 @@ module Ordering
       raise AlreadyConfirmed if @state.equal?(:confirmed)
       raise NotSubmitted unless @state.equal?(:submitted)
       apply OrderCancelled.new(data: { order_id: @id })
+    end
+
+    def as_data
+      @basket.order_lines.freeze
+    end
+
+    on OrderCreated do |event|
     end
 
     on OrderSubmitted do |event|

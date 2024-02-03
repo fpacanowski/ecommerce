@@ -96,4 +96,44 @@ module Ordering
       end
     end
   end
+
+  class OrderingService
+    def initialize(repository)
+      @repository = repository
+    end
+
+    def create_order
+      order_id = SecureRandom.uuid
+      @repository.with_aggregate(Order.new(order_id), "Ordering::Order$#{order_id}") do |order|
+        order.create
+      end
+      update_read_model
+      order_id
+    end
+
+    def add_item(order_id, product_id)
+      @repository.with_aggregate(Order.new(order_id), "Ordering::Order$#{order_id}") do |order|
+        order.add_item(product_id)
+      end
+    end
+
+    def get_order(order_id)
+      @repository.load(Order.new(order_id), "Ordering::Order$#{order_id}")
+    end
+
+    def update_read_model
+      order_ids = Infra::EventStore.main
+        .read
+        # .of_type([Ordering::OrderCreated])
+        .map { _1.data[:order_id] }
+        .compact
+        .uniq
+      orders = order_ids.map { get_order(_1) }
+      Orders::Order.destroy_all
+      orders.each do |o|
+        puts({uid: o.id, state: o.state, number: o.number})
+        Orders::Order.create(uid: o.id, state: o.state, number: o.number)
+      end
+    end
+  end
 end
