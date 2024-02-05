@@ -8,6 +8,19 @@ module Inventory
     def initialize(product_id)
       @product_id = product_id
       @reserved = 0
+      @in_stock = 0
+    end
+
+    def availability
+      @in_stock - @reserved
+    end
+
+    def register_delivery(amount)
+      apply ProductDelivered.new(data: {amount: amount})
+    end
+
+    def make_manual_adjustment(amount)
+      apply StockLevelManuallyAdjusted.new(data: {amount: amount})
     end
 
     def supply(quantity)
@@ -65,6 +78,14 @@ module Inventory
       ) if stock_level_defined?
     end
 
+    on ProductDelivered do |event|
+      @in_stock += event.data.fetch(:amount)
+    end
+
+    on StockLevelManuallyAdjusted do |event|
+      @in_stock = event.data.fetch(:amount)
+    end
+
     on StockLevelChanged do |event|
       @in_stock = event.data.fetch(:stock_level)
     end
@@ -78,10 +99,6 @@ module Inventory
     end
 
     on AvailabilityChanged do |_|
-    end
-
-    def availability
-      @in_stock - @reserved
     end
 
     def stock_level_defined?
