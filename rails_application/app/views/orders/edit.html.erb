@@ -21,6 +21,8 @@
     <%= link_to "Edit Billing Address", edit_order_billing_address_path(@order_id) %>
   <% end %>
 
+  <%= button_to("Submit", submit_order_path(@order_id), class: "mr-3 ml-3 inline-flex items-center px-4 py-2 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 border-transparent text-white bg-blue-600 hover:bg-blue-700") %>
+
   <%= primary_form_action_button do %>
     Submit Order
   <% end %>
@@ -37,18 +39,17 @@
   </thead>
 
   <tbody>
-  <% @products.each do |product| %>
+  <% @view_model.lines.each do |line| %>
     <tr class="border-b">
-      <% order_line = @order_lines.find{|order_line| order_line.product_id == product.id} %>
-      <td class="py-2"><%= product.name %></td>
-      <td class="py-2" id="<%= "orders_order_#{product.id}_quantity" %>"><%= order_line.try(&:quantity) || 0 %></td>
-      <td class="py-2"><%= number_to_currency(product.price) %></td>
-      <td class="py-2" id="<%= "orders_order_#{product.id}_value" %>"><%= number_to_currency(order_line.try(&:value)) %></td>
-      <td class="py-2"><%= button_to "Add", add_item_order_path(id: @order_id, product_id: product.id), class: "hover:underline text-blue-500" %></td>
-      <% if order_line.nil? %>
-        <td class="py-2 text-right" id="<%= "orders_order_#{product.id}_remove_item_button" %>"></td>
+      <td class="py-2"><%= line.product_name %></td>
+      <td class="py-2"><%= line.quantity %></td>
+      <td class="py-2"><%= number_to_currency(line.unit_price) %></td>
+      <td class="py-2"><%= number_to_currency(line.total_price) %></td>
+      <td class="py-2"><%= button_to "Add", add_item_order_path(id: @view_model.order_id, product_id: line.product_id), class: "hover:underline text-blue-500" %></td>
+      <% if line.display_remove_button %>
+        <td class="py-2 text-right"><%=  button_to("Remove", remove_item_order_path(id: @view_model.order_id, product_id: line.product_id), class: "hover:underline text-blue-500") %></td>
       <%  else %>
-        <td class="py-2 text-right" id="<%= "orders_order_#{product.id}_remove_item_button" %>"><%=  button_to("Remove", remove_item_order_path(id: @order_id, product_id: product.id), class: "hover:underline text-blue-500") %></td>
+        <td class="py-2 text-right"></td>
       <% end %>
     </tr>
   <% end %>

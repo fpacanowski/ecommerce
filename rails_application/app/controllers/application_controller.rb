@@ -12,7 +12,18 @@ class ApplicationController < ActionController::Base
   end
 
   def ordering_service
-    repo = AggregateRoot::Repository.new(event_store)
-    Ordering::OrderingService.new(repo)
+    Ordering::OrderingService.new(
+      aggregate_root_repository,
+      inventory_service,
+      Ordering::NumberGenerator.new
+    )
+  end
+
+  def inventory_service
+    Inventory::InventoryService.new(aggregate_root_repository)
+  end
+
+  def aggregate_root_repository
+    AggregateRoot::Repository.new(event_store)
   end
 end

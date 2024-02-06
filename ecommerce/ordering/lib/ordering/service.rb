@@ -98,8 +98,10 @@ module Ordering
   end
 
   class OrderingService
-    def initialize(repository)
+    def initialize(repository, inventory_service, number_generator)
       @repository = repository
+      @inventory_service = inventory_service
+      @number_generator = number_generator
     end
 
     def create_order
@@ -115,6 +117,22 @@ module Ordering
       @repository.with_aggregate(Order.new(order_id), "Ordering::Order$#{order_id}") do |order|
         order.add_item(product_id)
       end
+      update_read_model
+    end
+
+    def submit_order(order_id)
+      @repository.with_aggregate(Order.new(order_id), "Ordering::Order$#{order_id}") do |order|
+        order.submit(@number_generator.call)
+        products = order.as_data.map do |product_id, quantity|
+          {product_id:, quantity:}
+        end
+        product_list = Infra::Types::ProductList.new(products:)
+        @inventory_service.make_reservation(
+          "order_reservation_#{order_id}",
+          product_list
+        )
+      end
+      update_read_model
     end
 
     def get_order(order_id)

@@ -1,13 +1,6 @@
 require_relative "test_helper"
 
 module Inventory
-  class ProductList < Dry::Struct
-    attribute :products, Infra::Types::Array do
-      attribute :product_id, Infra::Types::UUID
-      attribute :quantity, Infra::Types::Integer
-    end
-  end
-
   class ServiceTest < Test
     def test_delivery
       product_id = SecureRandom.uuid

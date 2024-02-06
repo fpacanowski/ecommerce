@@ -37,5 +37,12 @@ module Infra
       attribute :line_3, Types::String
       attribute :line_4, Types::String
     end
+
+    class ProductList < Dry::Struct
+      attribute :products, Infra::Types::Array do
+        attribute :product_id, Infra::Types::UUID
+        attribute :quantity, Infra::Types::Integer
+      end
+    end  
   end
 end

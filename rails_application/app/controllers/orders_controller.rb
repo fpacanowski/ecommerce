@@ -19,6 +19,27 @@ class OrdersController < ApplicationController
     end
   end
 
+  class EditViewModel < Dry::Struct
+    include Dry.Types
+    # attribute :state, String
+    # attribute :order_number, String
+    attribute :order_id, String
+    attribute :lines, Array do
+      attribute :product_id, Infra::Types::String
+      attribute :product_name, String
+      attribute :quantity, Infra::Types::Integer
+      attribute :unit_price, Infra::Types::Price
+      attribute :total_price, Infra::Types::Price
+      attribute :display_remove_button, Infra::Types::Bool
+    end
+    # attribute :buttons do
+    #   attribute :edit, Bool
+    #   attribute :pay, Bool
+    #   attribute :cancel, Bool
+    #   attribute :invoice, Bool
+    # end
+  end
+
   def index
     @orders = Orders::Order.order("id DESC").page(params[:page]).per(10)
   end
@@ -39,12 +60,12 @@ class OrdersController < ApplicationController
       }
     end
     @view_model = ViewModel.new(
-      state: "Draft",
-      order_number: '',
+      state: order.state.to_s,
+      order_number: order.number || '',
       order_id: order_id,
       lines: lines,
       buttons: {
-        edit: false,
+        edit: order.state == :draft,
         pay: false,
         cancel: false,
         invoice: false,
@@ -63,6 +84,24 @@ class OrdersController < ApplicationController
     @products = Products::Product.all
     @customers = Customers::Customer.all
     @time_promotions = TimePromotions::TimePromotion.current
+
+    order = ordering_service.get_order(order_id)
+    lines = Products::Product.all.map do |product|
+      quantity = order.as_data.fetch(product.id, 0)
+      {
+        product_id: product.id,
+        product_name: product.name,
+        quantity: quantity,
+        unit_price:  "123.0",
+        total_price:  "123.0",
+        display_remove_button: quantity > 0,
+      }
+    end
+
+    @view_model = EditViewModel.new(
+      order_id: order_id,
+      lines: lines,
+    )
 
     render :edit,
            locals: {
@@ -96,20 +135,27 @@ class OrdersController < ApplicationController
   end
 
   def add_item
-    read_model = Orders::OrderLine.where(order_uid: params[:id], product_id: params[:product_id]).first
-    if Availability::Product.exists?(["uid = ? and available < ?", params[:product_id], (read_model&.quantity || 0) + 1])
-      redirect_to edit_order_path(params[:id]),
-                  alert: "Product not available in requested quantity!" and return
-    end
-    ActiveRecord::Base.transaction do
-      command_bus.(Ordering::AddItemToBasket.new(order_id: params[:id], product_id: params[:product_id]))
-    end
-    head :ok
+    ordering_service.add_item(order_id, params[:product_id])
+    # read_model = Orders::OrderLine.where(order_uid: params[:id], product_id: params[:product_id]).first
+    # if Availability::Product.exists?(["uid = ? and available < ?", params[:product_id], (read_model&.quantity || 0) + 1])
+    #   redirect_to edit_order_path(params[:id]),
+    #               alert: "Product not available in requested quantity!" and return
+    # end
+    # ActiveRecord::Base.transaction do
+    #   command_bus.(Ordering::AddItemToBasket.new(order_id: params[:id], product_id: params[:product_id]))
+    # end
+    # head :ok
+    redirect_to edit_order_path(order_id)
   end
 
   def remove_item
     command_bus.(Ordering::RemoveItemFromBasket.new(order_id: params[:id], product_id: params[:product_id]))
     head :ok
+  end
+
+  def submit
+    ordering_service.submit_order(params[:id])
+    redirect_to order_path(params[:id])
   end
 
   # def create
@@ -169,5 +215,9 @@ class OrdersController < ApplicationController
 
   def capture_payment_cmd(order_id)
     Payments::CapturePayment.new(order_id: order_id)
+  end
+
+  def order_id
+    params[:id]
   end
 end
