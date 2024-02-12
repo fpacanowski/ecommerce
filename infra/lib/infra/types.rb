@@ -43,6 +43,11 @@ module Infra
         attribute :product_id, Infra::Types::UUID
         attribute :quantity, Infra::Types::Integer
       end
+
+      def product_quantity(product_id)
+        product = products.find { _1.product_id == product_id }
+        product&.quantity || 0
+      end
     end  
   end
 end

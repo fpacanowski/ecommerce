@@ -7,6 +7,13 @@ class ApplicationController < ActionController::Base
     Rails.configuration.command_bus
   end
 
+  def application_service
+    ApplicationService.new(
+      ordering_service,
+      inventory_service
+    )
+  end
+
   def pricing_service
     Pricing::PricingService.new(event_store)
   end

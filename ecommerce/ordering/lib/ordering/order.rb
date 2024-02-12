@@ -25,7 +25,7 @@ module Ordering
     def submit(order_number)
       raise AlreadySubmitted if @state.equal?(:pre_submitted)
       raise OrderHasExpired if @state.equal?(:expired)
-      apply OrderPreSubmitted.new(
+      apply OrderSubmitted.new(
         data: {
           order_id: @id,
           order_number: order_number,
@@ -91,7 +91,7 @@ module Ordering
       @basket.order_lines.freeze
     end
 
-    def as_product_list
+    def product_list
       products = as_data.map do |product_id, quantity|
         {product_id:, quantity:}
       end
@@ -103,6 +103,7 @@ module Ordering
 
     on OrderSubmitted do |event|
       @state = :submitted
+      @number = event.data[:order_number]
     end
 
     on OrderConfirmed do |event|

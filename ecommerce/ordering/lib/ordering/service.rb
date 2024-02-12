@@ -120,17 +120,16 @@ module Ordering
       update_read_model
     end
 
+    def remove_item(order_id, product_id)
+      @repository.with_aggregate(Order.new(order_id), "Ordering::Order$#{order_id}") do |order|
+        order.remove_item(product_id)
+      end
+      update_read_model
+    end
+
     def submit_order(order_id)
       @repository.with_aggregate(Order.new(order_id), "Ordering::Order$#{order_id}") do |order|
         order.submit(@number_generator.call)
-        products = order.as_data.map do |product_id, quantity|
-          {product_id:, quantity:}
-        end
-        product_list = Infra::Types::ProductList.new(products:)
-        @inventory_service.make_reservation(
-          "order_reservation_#{order_id}",
-          product_list
-        )
       end
       update_read_model
     end
