@@ -29,6 +29,14 @@ module ApplicationHelper
     )
   end
 
+  def form_action_button(&block)
+    action_button(
+      "border-transparent text-white bg-blue-600 hover:bg-blue-700",
+      type: "submit",
+      &block
+    )
+  end
+
   def primary_action_button(type: "button", &block)
     action_button(
       "border-transparent text-white bg-blue-600 hover:bg-blue-700",

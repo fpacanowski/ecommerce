@@ -1,14 +1,16 @@
 class ProductsController < ApplicationController
   def index
-    @products = MainProduct.includes(:pricing_product).all
+    @products = MainProduct
+      .includes(:pricing_product)
+      .includes(:inventory_product)
+      .all
   end
 
   def show
-    @product = Products::Product.find(params[:id])
+    @product = MainProduct.find(params[:id])
   end
 
   def new
-    @product_id = SecureRandom.uuid
   end
 
   def edit
@@ -22,22 +24,25 @@ class ProductsController < ApplicationController
 
   def create
     ActiveRecord::Base.transaction do
-      create_product(params[:product_id], params[:name])
-      if params[:price].present?
-        set_product_price(params[:product_id], params[:price])
-      end
-      if params[:vat_rate].present?
-        set_product_vat_rate(params[:product_id], params[:vat_rate])
-      end
-    rescue ProductCatalog::AlreadyRegistered
-      flash[:notice] = "Product was already registered"
-      render "new"
-    rescue Taxes::Product::VatRateNotApplicable
-      flash[:notice] = "Selected VAT rate not applicable"
-      render "new"
-    else
-      redirect_to products_path, notice: "Product was successfully created"
+      product_id = product_service.register_product(params[:name])
+      pricing_service.set_price(product_id, params[:price])
     end
+    redirect_to products_path, notice: "Product was successfully created"
+  end
+
+  def rename
+    product_service.rename_product(params[:id], params[:name])
+    redirect_to product_path(params[:id]), notice: "Product was successfully renamed"
+  end
+
+  def set_price
+    pricing_service.set_price(params[:id], params[:price])
+    redirect_to product_path(params[:id]), notice: "Product price set"
+  end
+
+  def adjust_stock_level
+    inventory_service.make_manual_adjustment(params[:id], params[:quantity].to_i)
+    redirect_to product_path(params[:id]), notice: "Stock level adjusted"
   end
 
   def update

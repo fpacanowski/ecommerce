@@ -104,6 +104,10 @@ ActiveRecord::Schema[7.0].define(version: 2023_09_06_105318) do
     t.index ["stream", "position"], name: "index_event_store_events_in_streams_on_stream_and_position", unique: true
   end
 
+  create_table "inventory_products", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.integer "availability"
+  end
+
   create_table "invoice_items", force: :cascade do |t|
     t.bigint "invoice_id"
     t.string "name"

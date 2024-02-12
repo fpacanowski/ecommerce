@@ -28,11 +28,11 @@ Rails.application.routes.draw do
 
   resources :invoices, only: [:show]
 
-  resources :products, only: [:new, :show, :create, :index, :edit, :update] do
-    resources :supplies, only: [:new, :create]
+  resources :products, only: [:new, :show, :create, :index] do
     member do
-      post :add_future_price, to: "product/future_price#add_future_price", as: "add_future_price"
       post :adjust_stock_level
+      post :rename
+      post :set_price
     end
   end
 

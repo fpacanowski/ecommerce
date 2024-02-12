@@ -31,6 +31,7 @@ module ProductCatalog
         ),
         stream_name: stream_name(product_id)
       )
+      update_read_model
     end
 
     def get_product_name(product_id)
@@ -52,7 +53,7 @@ module ProductCatalog
 
     def update_read_model
       @event_store
-        .read.of_type([ProductCatalog::ProductRegistered])
+        .read.of_type([ProductRegistered, ProductRenamed])
         .map { [_1.data.fetch(:product_id), _1.data.fetch(:name)] }
         .each do |product_id, name|
           Products::Product.find_or_create_by!(id: product_id).update!(name:)

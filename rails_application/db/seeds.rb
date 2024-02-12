@@ -52,8 +52,10 @@ end
 # end
 
 event_store = Rails.configuration.event_store
+aggregate_root_repository = AggregateRoot::Repository.new(event_store)
 pricing_service = Pricing::PricingService.new(event_store)
 product_service = ProductCatalog::Service.new(event_store)
+inventory_service = Inventory::InventoryService.new(aggregate_root_repository)
 
 [
   ["Fearless Refactoring: Rails controllers", 49],
@@ -63,4 +65,5 @@ product_service = ProductCatalog::Service.new(event_store)
 ].each do |name, price|
   product_id = product_service.register_product(name)
   pricing_service.set_price(product_id, price)
+  inventory_service.make_manual_adjustment(product_id, 10)
 end
