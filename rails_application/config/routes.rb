@@ -32,6 +32,7 @@ Rails.application.routes.draw do
     resources :supplies, only: [:new, :create]
     member do
       post :add_future_price, to: "product/future_price#add_future_price", as: "add_future_price"
+      post :adjust_stock_level
     end
   end
 

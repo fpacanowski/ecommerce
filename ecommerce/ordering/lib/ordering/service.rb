@@ -149,7 +149,7 @@ module Ordering
       orders = order_ids.map { get_order(_1) }
       Orders::Order.destroy_all
       orders.each do |o|
-        puts({uid: o.id, state: o.state, number: o.number})
+        # puts({uid: o.id, state: o.state, number: o.number})
         Orders::Order.create(uid: o.id, state: o.state, number: o.number)
       end
     end

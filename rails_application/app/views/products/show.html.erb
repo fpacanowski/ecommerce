@@ -27,6 +27,18 @@
   <dd class="mb-2 mt-2"><%= @product.stock_level %></dd>
 </dl>
 
+<%= form_tag({controller: "products", action: "adjust_stock_level"}, method: "post", id: "form") do %>
+  <%= hidden_field_tag(:product_id, @product_id) %>
+
+  <label for="quantity" class="block font-bold">
+    Adjust stock level
+  </label>
+  <%= number_field_tag :quantity, nil, min: 1, step: 1, id: "quantity", class: "mt-1 focus:ring-blue-500 focus:border-blue-500 block shadow-sm sm:text-sm border-gray-300 rounded-md" %>
+  <%= primary_form_action_button do %>
+    SUBMIT
+  <% end %>
+<% end %>
+
 <% if @product.future_prices_calendar.any? %>
   <dl class="pt-4">
     <label for="future_prices" class="mt-6 block font-bold">

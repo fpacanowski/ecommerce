@@ -11,6 +11,7 @@ class OrdersController < ApplicationController
       attribute :unit_price, Infra::Types::Price
       attribute :total_price, Infra::Types::Price
     end
+    attribute :total_price, Infra::Types::Price
     attribute :buttons do
       attribute :edit, Bool
       attribute :pay, Bool
@@ -28,10 +29,11 @@ class OrdersController < ApplicationController
       attribute :product_id, Infra::Types::String
       attribute :product_name, String
       attribute :quantity, Infra::Types::Integer
-      attribute :unit_price, Infra::Types::Price
-      attribute :total_price, Infra::Types::Price
+      attribute :unit_price, Infra::Types::Price.optional
+      attribute :total_price, Infra::Types::Price.optional
       attribute :display_remove_button, Infra::Types::Bool
     end
+    attribute :total_price, Infra::Types::Price
     # attribute :buttons do
     #   attribute :edit, Bool
     #   attribute :pay, Bool
@@ -48,15 +50,16 @@ class OrdersController < ApplicationController
     order_id = params[:id]
     @invoice = Invoices::Invoice.find_or_initialize_by(order_uid: order_id)
     order = ordering_service.get_order(order_id)
+    priced_order = pricing_service.price_order(order.as_product_list)
     products = order.as_data.keys
       .map { |product_id| [product_id, product_service.get_product_name(product_id)] }
       .to_h
-    lines = order.as_data.to_a.map do |product_id, quantity|
+    lines = priced_order.lines.map do |product|
       {
-        product_name: products[product_id] || "UNKNOWN",
-        quantity: quantity,
-        unit_price:  "123.0",
-        total_price:  "123.0",
+        product_name: products[product.product_id] || "UNKNOWN",
+        quantity: product.quantity,
+        unit_price: product.unit_price,
+        total_price: product.total_price,
       }
     end
     @view_model = ViewModel.new(
@@ -64,6 +67,7 @@ class OrdersController < ApplicationController
       order_number: order.number || '',
       order_id: order_id,
       lines: lines,
+      total_price: priced_order.total_price,
       buttons: {
         edit: order.state == :draft,
         pay: false,
@@ -86,14 +90,17 @@ class OrdersController < ApplicationController
     @time_promotions = TimePromotions::TimePromotion.current
 
     order = ordering_service.get_order(order_id)
+    priced_order = pricing_service.price_order(order.as_product_list)
     lines = Products::Product.all.map do |product|
+      products_by_id = priced_order.lines.index_by(&:product_id)
+      line = products_by_id[product.id]
       quantity = order.as_data.fetch(product.id, 0)
       {
         product_id: product.id,
         product_name: product.name,
-        quantity: quantity,
-        unit_price:  "123.0",
-        total_price:  "123.0",
+        quantity: line&.quantity || 0,
+        unit_price: line&.unit_price,
+        total_price: line&.total_price,
         display_remove_button: quantity > 0,
       }
     end
@@ -101,6 +108,7 @@ class OrdersController < ApplicationController
     @view_model = EditViewModel.new(
       order_id: order_id,
       lines: lines,
+      total_price: priced_order.total_price,
     )
 
     render :edit,

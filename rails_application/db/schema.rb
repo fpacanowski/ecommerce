@@ -168,6 +168,10 @@ ActiveRecord::Schema[7.0].define(version: 2023_09_06_105318) do
     t.decimal "price", precision: 8, scale: 2
   end
 
+  create_table "pricing_products", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.decimal "price", precision: 8, scale: 2
+  end
+
   create_table "products", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "name"
     t.integer "stock_level"

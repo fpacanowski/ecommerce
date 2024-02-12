@@ -29,6 +29,72 @@ module Pricing
     @event_store
   end
 
+  class PricedOrder < Dry::Struct
+    attribute :lines, Infra::Types::Array do
+      attribute :product_id, Infra::Types::String
+      attribute :quantity, Infra::Types::Integer
+      attribute :unit_price, Infra::Types::Price
+      attribute :total_price, Infra::Types::Price
+    end
+    attribute :total_price, Infra::Types::Price  
+  end
+
+  class PricingService
+    def initialize(event_store)
+      @event_store = event_store
+    end
+
+    def set_price(product_id, price)
+      @event_store.publish(
+        PriceSet.new(
+          data: {product_id: product_id, price: price}
+        ),
+        stream_name: stream_name(product_id)
+      )
+      update_read_model
+    end
+
+    def price_order(product_list)
+      lines = product_list.products.map do |product|
+        price = get_price(product.product_id)
+        {
+          product_id: product.product_id,
+          quantity: product.quantity,
+          unit_price: price,
+          total_price: product.quantity * price,
+        }
+      end
+      total_price = lines.map { _1.fetch(:total_price) }.sum
+      PricedOrder.new(lines: lines, total_price: total_price)
+    end
+
+    private
+
+    def get_price(product_id)
+      @event_store
+      .read
+      .stream(stream_name(product_id))
+      .of_type([PriceSet])
+      .last
+      .data
+      .fetch(:price)
+
+    end
+
+    def update_read_model
+      @event_store
+        .read.of_type([PriceSet])
+        .map { _1.data.values_at(:product_id, :price) }
+        .each do |product_id, price|
+          Pricing::Product.find_or_create_by!(id: product_id).update!(price:)
+      end
+    end
+
+    def stream_name(product_id)
+      "Pricing::Product$#{product_id}"
+    end
+  end
+
   class Configuration
     def call(event_store, command_bus)
       Pricing.event_store = event_store

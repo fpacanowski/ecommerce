@@ -78,7 +78,7 @@
     <% end %>
     <tr class="border-t">
       <td class="py-2" colspan="3">Total</td>
-      <td class="py-2 font-bold" id="<%= "orders_order_#{@order_id}_discounted_value" %>"><%= number_to_currency(discounted_value) %></td>
+      <td class="py-2 font-bold"><%= number_to_currency(@view_model.total_price) %></td>
     </tr>
   </tfoot>
 </table>

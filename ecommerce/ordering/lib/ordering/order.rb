@@ -91,6 +91,13 @@ module Ordering
       @basket.order_lines.freeze
     end
 
+    def as_product_list
+      products = as_data.map do |product_id, quantity|
+        {product_id:, quantity:}
+      end
+      Infra::Types::ProductList.new(products:)
+    end
+
     on OrderCreated do |event|
     end
 

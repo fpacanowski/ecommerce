@@ -1,6 +1,6 @@
 class ProductsController < ApplicationController
   def index
-    @products = Products::Product.all
+    @products = MainProduct.includes(:pricing_product).all
   end
 
   def show
@@ -13,6 +13,11 @@ class ProductsController < ApplicationController
 
   def edit
     @product = Products::Product.find(params[:id])
+  end
+
+  def adjust_stock_level
+    inventory_service.make_manual_adjustment(params[:id], params[:quantity].to_i)
+    redirect_to product_path(params[:id])
   end
 
   def create
