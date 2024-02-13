@@ -16,6 +16,7 @@ Rails.application.routes.draw do
       post :update_discount
       post :reset_discount
       post :submit
+      post :apply_coupon
     end
     resource :shipping_address, only: [:edit, :update]
     resource :billing_address, only: [:edit, :update]

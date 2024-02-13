@@ -31,7 +31,9 @@ class OrdersController < ApplicationController
       attribute :total_price, Infra::Types::Price.optional
       attribute :display_remove_button, Infra::Types::Bool
     end
+    attribute :final_price, Infra::Types::Price
     attribute :total_price, Infra::Types::Price
+    attribute :discount, Infra::Types::Price
   end
 
   def index
@@ -82,7 +84,8 @@ class OrdersController < ApplicationController
     @time_promotions = TimePromotions::TimePromotion.current
 
     order = ordering_service.get_order(order_id)
-    priced_order = pricing_service.price_order(order.product_list)
+    # priced_order = pricing_service.price_order(order.product_list)
+    priced_order = application_service.price_order(order_id)
     products_by_id = priced_order.lines.index_by(&:product_id)
     lines = Products::Product.all.map do |product|
       line = products_by_id[product.id]
@@ -101,6 +104,8 @@ class OrdersController < ApplicationController
       order_id: order_id,
       lines: lines,
       total_price: priced_order.total_price,
+      discount: priced_order.discount,
+      final_price: priced_order.final_price,
     )
 
     render :edit,
@@ -113,6 +118,13 @@ class OrdersController < ApplicationController
 
   def edit_discount
     @order_id = params[:id]
+  end
+
+  def apply_coupon
+    pricing_service.apply_coupon(order_id, params[:coupon_code])
+    redirect_to edit_order_path(order_id), notice: 'Coupon applied'
+  rescue Pricing::InvalidCode
+    redirect_to edit_order_path(order_id), alert: 'Invalid code!'
   end
 
   def update_discount

@@ -78,10 +78,28 @@
     <% end %>
     <tr class="border-t">
       <td class="py-2" colspan="3">Total</td>
-      <td class="py-2 font-bold"><%= number_to_currency(@view_model.total_price) %></td>
+      <td class="py-2"><%= number_to_currency(@view_model.total_price) %></td>
+    </tr>
+    <tr class="border-t">
+      <td class="py-2" colspan="3">Discount</td>
+      <td class="py-2">-<%= number_to_currency(@view_model.discount) %></td>
+    </tr>
+    <tr class="border-t">
+      <td class="py-2" colspan="3">Final</td>
+      <td class="py-2 font-bold"><%= number_to_currency(@view_model.final_price) %></td>
     </tr>
   </tfoot>
 </table>
+
+<%= form_tag({controller: "orders", action: "apply_coupon"}, method: "post", id: "apply-coupon-form") do %>
+  <label for="coupon-code" class="block font-bold">
+    Code
+  </label>
+  <%= text_field_tag :coupon_code, "", required: true, class: "mt-1 focus:ring-blue-500 focus:border-blue-500 block shadow-sm sm:text-sm border-gray-300 rounded-md" %>
+  <%= form_action_button do %>
+    Apply coupon
+  <% end %>
+<% end %>
 
 <%= form_tag({controller: "orders", action: "create"}, method: "post", id: "form") do %>
   <%= hidden_field_tag(:order_id, @order_id) %>

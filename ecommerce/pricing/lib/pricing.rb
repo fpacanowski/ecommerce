@@ -29,6 +29,8 @@ module Pricing
     @event_store
   end
 
+  InvalidCode = Class.new(StandardError)
+
   class PricedOrder < Dry::Struct
     attribute :lines, Infra::Types::Array do
       attribute :product_id, Infra::Types::String
@@ -36,7 +38,9 @@ module Pricing
       attribute :unit_price, Infra::Types::Price
       attribute :total_price, Infra::Types::Price
     end
-    attribute :total_price, Infra::Types::Price  
+    attribute :discount, Infra::Types::Price.optional
+    attribute :total_price, Infra::Types::Price
+    attribute :final_price, Infra::Types::Price
   end
 
   class PricingService
@@ -54,7 +58,31 @@ module Pricing
       update_read_model
     end
 
-    def price_order(product_list)
+    def apply_coupon(order_id, coupon_code)
+      coupons_by_code = {'ddd' => {discount: 10}}
+      raise InvalidCode.new unless coupons_by_code.has_key?(coupon_code)
+
+      discount = coupons_by_code.fetch(coupon_code).fetch(:discount)
+      @event_store.publish(
+        DiscountApplied.new(
+          data: {code: coupon_code, discount: discount}
+        ),
+        stream_name: "Pricing::OrderCoupons$#{order_id}"
+      )
+    end
+
+    def get_applicable_discounts(order_id)
+      projection = RubyEventStore::Projection
+      .from_stream("Pricing::OrderCoupons$#{order_id}")
+      .init(-> { {} })
+      .when(
+        [DiscountApplied],
+        ->(state, event) { state[:discount] = event.data[:discount] }
+        )
+      [{discount: projection.run(@event_store)[:discount]}]
+    end
+
+    def price_order(product_list, discounts)
       lines = product_list.products.map do |product|
         price = get_price(product.product_id)
         {
@@ -65,7 +93,14 @@ module Pricing
         }
       end
       total_price = lines.map { _1.fetch(:total_price) }.sum
-      PricedOrder.new(lines: lines, total_price: total_price)
+      discounted_amount = discounts.first.fetch(:discount) * total_price * 0.01
+      final_price = total_price - discounted_amount
+      PricedOrder.new(
+        lines: lines,
+        discount: discounts.empty? ? nil : discounted_amount,
+        total_price: total_price,
+        final_price: final_price
+      )
     end
 
     private

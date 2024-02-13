@@ -10,7 +10,8 @@ class ApplicationController < ActionController::Base
   def application_service
     ApplicationService.new(
       ordering_service,
-      inventory_service
+      inventory_service,
+      pricing_service
     )
   end
 
