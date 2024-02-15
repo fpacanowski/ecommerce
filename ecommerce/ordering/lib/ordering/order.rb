@@ -7,24 +7,24 @@ module Ordering
     AlreadyConfirmed = Class.new(InvalidState)
     NotSubmitted = Class.new(InvalidState)
     OrderHasExpired = Class.new(InvalidState)
+    BasketEmpty = Class.new(InvalidState)
 
     attr_reader :id
     attr_reader :number
     attr_reader :state
 
-    def initialize(id)
-      @id = id
-      @state = :draft
+    def initialize
       @basket = Basket.new
     end
 
-    def create
-      apply OrderCreated.new(data: {order_id: @id})
+    def create(order_id)
+      apply OrderCreated.new(data: {order_id: order_id})
     end
 
     def submit(order_number)
-      raise AlreadySubmitted if @state.equal?(:pre_submitted)
-      raise OrderHasExpired if @state.equal?(:expired)
+      raise AlreadySubmitted unless @state.equal?(:draft)
+      raise BasketEmpty if @basket.empty?
+
       apply OrderSubmitted.new(
         data: {
           order_id: @id,
@@ -54,17 +54,6 @@ module Ordering
       )
     end
 
-    def confirm
-      raise OrderHasExpired if @state.equal?(:expired)
-      raise NotSubmitted unless @state.equal?(:submitted)
-      apply OrderConfirmed.new(data: { order_id: @id })
-    end
-
-    def expire
-      raise AlreadyConfirmed if @state.equal?(:confirmed)
-      apply OrderExpired.new(data: { order_id: @id })
-    end
-
     def add_item(product_id)
       raise AlreadySubmitted unless @state.equal?(:draft)
       apply ItemAddedToBasket.new(
@@ -81,9 +70,6 @@ module Ordering
     end
 
     def cancel
-      raise OrderHasExpired if @state.equal?(:expired)
-      raise AlreadyConfirmed if @state.equal?(:confirmed)
-      raise NotSubmitted unless @state.equal?(:submitted)
       apply OrderCancelled.new(data: { order_id: @id })
     end
 
@@ -99,19 +85,13 @@ module Ordering
     end
 
     on OrderCreated do |event|
+      @state = :draft
+      @id = event.data.fetch(:order_id)
     end
 
     on OrderSubmitted do |event|
       @state = :submitted
-      @number = event.data[:order_number]
-    end
-
-    on OrderConfirmed do |event|
-      @state = :confirmed
-    end
-
-    on OrderExpired do |event|
-      @state = :expired
+      @number = event.data.fetch(:order_number)
     end
 
     on OrderCancelled do |event|
@@ -124,15 +104,6 @@ module Ordering
 
     on ItemRemovedFromBasket do |event|
       @basket.decrease_quantity(event.data[:product_id])
-    end
-
-    on OrderPreSubmitted do |event|
-      @order_number = event.data[:order_number]
-      @state = :pre_submitted
-    end
-
-    on OrderRejected do |event|
-      @state = :draft
     end
 
     class Basket
@@ -155,6 +126,10 @@ module Ordering
 
       def quantity(product_id)
         order_lines[product_id]
+      end
+
+      def empty?
+        order_lines.empty?
       end
     end
   end

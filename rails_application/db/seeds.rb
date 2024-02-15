@@ -55,7 +55,7 @@ event_store = Rails.configuration.event_store
 aggregate_root_repository = AggregateRoot::Repository.new(event_store)
 pricing_service = Pricing::PricingService.new(event_store)
 product_service = ProductCatalog::Service.new(event_store)
-inventory_service = Inventory::InventoryService.new(aggregate_root_repository)
+inventory_service = Inventory::InventoryService.new(aggregate_root_repository, event_store)
 
 [
   ["Fearless Refactoring: Rails controllers", 49],

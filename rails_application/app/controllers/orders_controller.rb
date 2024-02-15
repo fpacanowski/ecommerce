@@ -65,7 +65,7 @@ class OrdersController < ApplicationController
       buttons: {
         edit: order.state == 'draft',
         pay: order.state == 'submitted',
-        cancel: false,
+        cancel: order.state != 'cancelled',
         invoice: false,
       }
     )
@@ -177,8 +177,8 @@ class OrdersController < ApplicationController
   end
 
   def cancel
-    command_bus.(Ordering::CancelOrder.new(order_id: params[:id]))
-    redirect_to root_path, notice: "Order cancelled"
+    application_service.cancel_order(order_id)
+    redirect_to orders_path, notice: "Order cancelled"
   end
 
   private

@@ -31,13 +31,12 @@ class ApplicationController < ActionController::Base
   def ordering_service
     Ordering::OrderingService.new(
       aggregate_root_repository,
-      inventory_service,
       Ordering::NumberGenerator.new
     )
   end
 
   def inventory_service
-    Inventory::InventoryService.new(aggregate_root_repository)
+    Inventory::InventoryService.new(aggregate_root_repository, event_store)
   end
 
   def aggregate_root_repository

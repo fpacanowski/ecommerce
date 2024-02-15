@@ -8,6 +8,5 @@ module Inventory
   end
 
   class ReservationMade < Infra::Event
-    attribute :reservation_id, Infra::Types::String
   end
 end

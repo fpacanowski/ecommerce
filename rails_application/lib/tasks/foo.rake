@@ -47,10 +47,20 @@ namespace :foo do
 
   task :run3 => :environment do
     require_relative '../../app/read_models/orders/configuration'
-    repo = AggregateRoot::Repository.new(Rails.configuration.event_store)
-    service = Payments::PaymentsService.new(repo)
-    order_id = SecureRandom.uuid
-    payment_id = service.create_payment(order_id, 17)
+    event_store = Rails.configuration.event_store
+    repo = AggregateRoot::Repository.new(event_store)
+    service = Inventory::InventoryService.new(repo, event_store)
+    product_id = SecureRandom.uuid
+    product2_id = SecureRandom.uuid
+
+    service.make_manual_adjustment(product_id, 10)
+
+    product_list = Infra::Types::ProductList.new(
+      products: [{product_id: product_id, quantity: 7}]
+    )
+
+    service.make_reservation('abc', product_list)
+
     binding.pry
   end
 end

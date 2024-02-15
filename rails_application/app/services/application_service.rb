@@ -26,11 +26,13 @@ class ApplicationService
     order = @ordering_service.get_order(order_id)
     priced_order = price_order(order_id)
     @payments_service.create_payment(order_id, priced_order.final_price)
-    @inventory_service.make_reservation(
-      "order_reservation_#{order_id}",
-      order.product_list
-    )
+    @inventory_service.make_reservation(order_id, order.product_list)
     @ordering_service.submit_order(order_id)
+  end
+
+  def cancel_order(order_id)
+    @ordering_service.cancel_order(order_id)
+    @inventory_service.cancel_reservation(order_id)
   end
 
   def price_order(order_id)
