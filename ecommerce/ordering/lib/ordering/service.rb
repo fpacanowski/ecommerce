@@ -141,7 +141,7 @@ module Ordering
     def update_read_model
       order_ids = Infra::EventStore.main
         .read
-        # .of_type([Ordering::OrderCreated])
+        .of_type([OrderCreated, OrderSubmitted])
         .map { _1.data[:order_id] }
         .compact
         .uniq

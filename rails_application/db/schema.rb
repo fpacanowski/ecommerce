@@ -172,6 +172,11 @@ ActiveRecord::Schema[7.0].define(version: 2023_09_06_105318) do
     t.decimal "price", precision: 8, scale: 2
   end
 
+  create_table "payments", force: :cascade do |t|
+    t.uuid "order_id", null: false
+    t.string "state"
+  end
+
   create_table "pricing_products", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.decimal "price", precision: 8, scale: 2
   end

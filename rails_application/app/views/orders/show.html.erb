@@ -7,10 +7,6 @@
   <% end %>
 
   <%= secondary_action_button do %>
-    <%= link_to "Invoice", invoice_path(@view_model.order_id) %>
-  <% end if @view_model.buttons.invoice %>
-
-  <%= secondary_action_button do %>
     <%= link_to 'Back', orders_path %>
   <% end %>
 
@@ -24,7 +20,7 @@
     <%= button_to("Pay", pay_order_path(@view_model.order_id), class: "mr-3 ml-3 inline-flex items-center px-4 py-2 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 border-transparent text-white bg-blue-600 hover:bg-blue-700") %>
   <% end %>
 
-  <% if @view_model.buttons.pay %>
+  <% if @view_model.buttons.cancel %>
     <%= button_to("Cancel Order", cancel_order_path(@view_model.order_id), class: "inline-flex items-center px-4 py-2 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-50 border-gray-300 text-gray-700 bg-white hover:bg-gray-50") %>
   <% end %>
 <% end %>
@@ -34,42 +30,6 @@
   <dd class="mb-2"><%= "None" %></dd>
   <dt class="font-bold">State</dt>
   <dd class="mb-2"><%= @view_model.state %></dd>
-  <dt class="font-bold">Shipping Details</dt>
-  <dd class="mb-2">
-    <% unless @shipment %>
-      Shipping address is missing.
-    <% end %>
-  </dd>
-  <dd class="mb-2">
-    <% unless @shipment %>
-      <%= link_to "Add shipment address",
-                  edit_order_shipping_address_path(@view_model.order_id),
-                  class: 'px-2 py-1 border rounded-md shadow-sm text-xs font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 border-transparent text-white bg-blue-600 hover:bg-blue-700'
-      %>
-    <% else %>
-      Your shipment has been queued for processing.
-    <% end %>
-  </dd>
-  <% if false %>
-    <dt class="font-bold">Billing Details</dt>
-    <dd class="mb-2">
-      <% if @invoice.issued? %>
-        <%= link_to @invoice.number, invoice_path(@view_model.order_id) %>
-      <% elsif !@invoice.address_present? %>
-        Billing address is missing.
-        <%= link_to "Add billing address",
-                    edit_order_billing_address_path(@view_model.order_id),
-                    class: 'px-2 py-1 border rounded-md shadow-sm text-xs font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 border-transparent text-white bg-blue-600 hover:bg-blue-700'
-        %>
-      <% else %>
-        Invoice not issued
-        <%= button_to "Issue now",
-                    order_invoice_path(@view_model.order_id),
-                    class: 'px-2 py-1 border rounded-md shadow-sm text-xs font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 border-transparent text-white bg-blue-600 hover:bg-blue-700'
-        %>
-      <% end %>
-    </dd>
-  <% end %>
 </dl>
 
 <table class="w-full">

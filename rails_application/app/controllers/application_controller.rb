@@ -11,7 +11,8 @@ class ApplicationController < ActionController::Base
     ApplicationService.new(
       ordering_service,
       inventory_service,
-      pricing_service
+      pricing_service,
+      payments_service
     )
   end
 
@@ -21,6 +22,10 @@ class ApplicationController < ActionController::Base
 
   def product_service
     ProductCatalog::Service.new(event_store)
+  end
+
+  def payments_service
+    Payments::PaymentsService.new(aggregate_root_repository)
   end
 
   def ordering_service

@@ -93,7 +93,12 @@ module Pricing
         }
       end
       total_price = lines.map { _1.fetch(:total_price) }.sum
-      discounted_amount = discounts.first.fetch(:discount) * total_price * 0.01
+      # discounted_amount = if !discounts.empty?
+      #   discounts.first.fetch(:discount) * total_price * 0.01
+      # else
+      #   0
+      # end
+      discounted_amount = 0
       final_price = total_price - discounted_amount
       PricedOrder.new(
         lines: lines,

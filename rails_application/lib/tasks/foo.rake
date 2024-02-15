@@ -44,4 +44,13 @@ namespace :foo do
     pp order.as_product_list
     pp pricing_service.price_order(order.as_product_list)
   end
+
+  task :run3 => :environment do
+    require_relative '../../app/read_models/orders/configuration'
+    repo = AggregateRoot::Repository.new(Rails.configuration.event_store)
+    service = Payments::PaymentsService.new(repo)
+    order_id = SecureRandom.uuid
+    payment_id = service.create_payment(order_id, 17)
+    binding.pry
+  end
 end

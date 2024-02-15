@@ -41,11 +41,11 @@ class OrdersController < ApplicationController
   end
 
   def show
-    order_id = params[:id]
     @invoice = Invoices::Invoice.find_or_initialize_by(order_uid: order_id)
     order = ordering_service.get_order(order_id)
-    priced_order = pricing_service.price_order(order.product_list)
-    products = order.as_data.keys
+    order = Orders::Order.find_by(uid: order_id)
+    priced_order = application_service.price_order(order_id)
+    products = priced_order.lines.map(&:product_id)
       .map { |product_id| [product_id, product_service.get_product_name(product_id)] }
       .to_h
     lines = priced_order.lines.map do |product|
@@ -63,8 +63,8 @@ class OrdersController < ApplicationController
       lines: lines,
       total_price: priced_order.total_price,
       buttons: {
-        edit: order.state == :draft,
-        pay: false,
+        edit: order.state == 'draft',
+        pay: order.state == 'submitted',
         cancel: false,
         invoice: false,
       }
@@ -172,19 +172,7 @@ class OrdersController < ApplicationController
   end
 
   def pay
-    ActiveRecord::Base.transaction do
-      authorize_payment(params[:id])
-      capture_payment(params[:id])
-      flash[:notice] = "Order paid successfully"
-    rescue Payments::Payment::AlreadyAuthorized
-      flash[:alert] = "Payment was already authorized"
-    rescue Payments::Payment::AlreadyCaptured
-      flash[:alert] = "Payment was already captured"
-    rescue Payments::Payment::NotAuthorized
-      flash[:alert] = "Payment wasn't yet authorized"
-    rescue Ordering::Order::NotSubmitted
-      flash[:alert] = "You can't pay for an order which is not submitted"
-    end
+    application_service.handle_successful_payment(order_id)
     redirect_to orders_path
   end
 

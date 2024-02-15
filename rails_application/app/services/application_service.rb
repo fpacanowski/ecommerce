@@ -1,10 +1,11 @@
 class ApplicationService
   InsufficientQuantity = Class.new(StandardError)
 
-  def initialize(ordering_service, inventory_service, pricing_service)
+  def initialize(ordering_service, inventory_service, pricing_service, payments_service)
     @ordering_service = ordering_service
     @inventory_service = inventory_service
     @pricing_service = pricing_service
+    @payments_service = payments_service
   end
 
   def add_item_to_order(order_id, product_id)
@@ -23,6 +24,8 @@ class ApplicationService
 
   def submit_order(order_id)
     order = @ordering_service.get_order(order_id)
+    priced_order = price_order(order_id)
+    @payments_service.create_payment(order_id, priced_order.final_price)
     @inventory_service.make_reservation(
       "order_reservation_#{order_id}",
       order.product_list
@@ -34,5 +37,9 @@ class ApplicationService
     order = @ordering_service.get_order(order_id)
     discounts = @pricing_service.get_applicable_discounts(order_id)
     @pricing_service.price_order(order.product_list, discounts)
+  end
+
+  def handle_successful_payment(order_id)
+    @payments_service.mark_paid(order_id)
   end
 end

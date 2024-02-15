@@ -7,6 +7,17 @@ module Orders
              class_name: "Orders::OrderLine",
              foreign_key: :order_uid,
              primary_key: :uid
+
+    has_one :payment,
+      class_name: 'ArPayment',
+      foreign_key: :order_id,
+      primary_key: :uid
+
+    def state
+      return 'paid' if payment&.state == 'paid'
+
+      super
+    end
   end
 
   class Product < ApplicationRecord

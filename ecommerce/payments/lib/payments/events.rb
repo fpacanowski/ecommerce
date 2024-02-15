@@ -8,6 +8,9 @@ module Payments
     attribute :order_id, Infra::Types::UUID
   end
 
+  class PaymentCreated < Infra::Event; end
+  class PaymentPaid < Infra::Event; end
+
   class PaymentCaptured < Infra::Event
     attribute :order_id, Infra::Types::UUID
   end
