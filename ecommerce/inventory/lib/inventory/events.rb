@@ -9,4 +9,10 @@ module Inventory
 
   class ReservationMade < Infra::Event
   end
+  # class StockLevelChanged < Infra::Event
+  # end
+  class StockReleased < Infra::Event
+  end
+  class StockReserved < Infra::Event
+  end
 end

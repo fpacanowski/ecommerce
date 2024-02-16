@@ -16,7 +16,6 @@ class OrdersController < ApplicationController
       attribute :edit, Bool
       attribute :pay, Bool
       attribute :cancel, Bool
-      attribute :invoice, Bool
     end
   end
 
@@ -41,8 +40,6 @@ class OrdersController < ApplicationController
   end
 
   def show
-    @invoice = Invoices::Invoice.find_or_initialize_by(order_uid: order_id)
-    order = ordering_service.get_order(order_id)
     order = Orders::Order.find_by(uid: order_id)
     priced_order = application_service.price_order(order_id)
     products = priced_order.lines.map(&:product_id)
@@ -65,8 +62,7 @@ class OrdersController < ApplicationController
       buttons: {
         edit: order.state == 'draft',
         pay: order.state == 'submitted',
-        cancel: order.state != 'cancelled',
-        invoice: false,
+        cancel: !%w[cancelled paid].include?(order.state),
       }
     )
   end
@@ -76,15 +72,7 @@ class OrdersController < ApplicationController
   end
 
   def edit
-    @order_id = params[:id]
-    @order = Orders::Order.find_by_uid(params[:id])
-    @order_lines = Orders::OrderLine.where(order_uid: params[:id])
-    @products = Products::Product.all
-    @customers = Customers::Customer.all
-    @time_promotions = TimePromotions::TimePromotion.current
-
     order = ordering_service.get_order(order_id)
-    # priced_order = pricing_service.price_order(order.product_list)
     priced_order = application_service.price_order(order_id)
     products_by_id = priced_order.lines.index_by(&:product_id)
     lines = Products::Product.all.map do |product|
@@ -108,16 +96,7 @@ class OrdersController < ApplicationController
       final_price: priced_order.final_price,
     )
 
-    render :edit,
-           locals: {
-             discounted_value: @order&.discounted_value || 0,
-             total_value: @order&.total_value || 0,
-             percentage_discount: @order&.percentage_discount
-           }
-  end
-
-  def edit_discount
-    @order_id = params[:id]
+    render :edit
   end
 
   def apply_coupon
@@ -125,25 +104,6 @@ class OrdersController < ApplicationController
     redirect_to edit_order_path(order_id), notice: 'Coupon applied'
   rescue Pricing::InvalidCode
     redirect_to edit_order_path(order_id), alert: 'Invalid code!'
-  end
-
-  def update_discount
-    @order_id = params[:id]
-    order = Orders::Order.find_or_create_by!(uid: params[:id])
-    if order.percentage_discount
-      command_bus.(Pricing::ChangePercentageDiscount.new(order_id: @order_id, amount: params[:amount]))
-    else
-      command_bus.(Pricing::SetPercentageDiscount.new(order_id: @order_id, amount: params[:amount]))
-    end
-
-    redirect_to edit_order_path(@order_id)
-  end
-
-  def reset_discount
-    @order_id = params[:id]
-    command_bus.(Pricing::ResetPercentageDiscount.new(order_id: @order_id))
-
-    redirect_to edit_order_path(@order_id)
   end
 
   def add_item
@@ -164,13 +124,6 @@ class OrdersController < ApplicationController
     redirect_to order_path(order_id)
   end
 
-  def expire
-    Orders::Order
-      .where(state: "Draft")
-      .find_each { |order| command_bus.(Ordering::SetOrderAsExpired.new(order_id: order.uid)) }
-    redirect_to root_path
-  end
-
   def pay
     application_service.handle_successful_payment(order_id)
     redirect_to orders_path
@@ -182,27 +135,6 @@ class OrdersController < ApplicationController
   end
 
   private
-
-  def submit_order(order_id, customer_id)
-    command_bus.(Ordering::SubmitOrder.new(order_id: order_id))
-    command_bus.(Crm::AssignCustomerToOrder.new(order_id: order_id, customer_id: customer_id))
-  end
-
-  def authorize_payment(order_id)
-    command_bus.call(authorize_payment_cmd(order_id))
-  end
-
-  def capture_payment(order_id)
-    command_bus.call(capture_payment_cmd(order_id))
-  end
-
-  def authorize_payment_cmd(order_id)
-    Payments::AuthorizePayment.new(order_id: order_id)
-  end
-
-  def capture_payment_cmd(order_id)
-    Payments::CapturePayment.new(order_id: order_id)
-  end
 
   def order_id
     params[:id]

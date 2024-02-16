@@ -4,9 +4,6 @@ module Ordering
 
     InvalidState = Class.new(StandardError)
     AlreadySubmitted = Class.new(InvalidState)
-    AlreadyConfirmed = Class.new(InvalidState)
-    NotSubmitted = Class.new(InvalidState)
-    OrderHasExpired = Class.new(InvalidState)
     BasketEmpty = Class.new(InvalidState)
 
     attr_reader :id
@@ -34,26 +31,6 @@ module Ordering
       )
     end
 
-    def accept
-      raise InvalidState unless @state.equal?(:pre_submitted)
-      apply OrderSubmitted.new(
-        data: {
-          order_id: @id,
-          order_number: @order_number,
-          order_lines: @basket.order_lines
-        }
-      )
-    end
-
-    def reject
-      raise InvalidState unless @state.equal?(:pre_submitted)
-      apply OrderRejected.new(
-        data: {
-          order_id: @id
-        }
-      )
-    end
-
     def add_item(product_id)
       raise AlreadySubmitted unless @state.equal?(:draft)
       apply ItemAddedToBasket.new(
@@ -73,6 +50,7 @@ module Ordering
       apply OrderCancelled.new(data: { order_id: @id })
     end
 
+    # TODO: remove this method
     def as_data
       @basket.order_lines.freeze
     end

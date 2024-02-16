@@ -1,5 +1,3 @@
-<%= turbo_stream_from "orders_order_#{@order_id}" %>
-
 <% content_for(:header) do %>
   Order
 <% end %>
@@ -9,23 +7,7 @@
     <%= link_to 'Back', orders_path %>
   <% end %>
 
-  <%= secondary_action_button do %>
-    <%= link_to "Edit discount", edit_discount_order_path(@order_id) %>
-  <% end %>
-
-  <%= secondary_action_button do %>
-    <%= link_to "Edit Shipping Address", edit_order_shipping_address_path(@order_id) %>
-  <% end %>
-
-  <%= secondary_action_button do %>
-    <%= link_to "Edit Billing Address", edit_order_billing_address_path(@order_id) %>
-  <% end %>
-
-  <%= button_to("Submit", submit_order_path(@order_id), class: "mr-3 ml-3 inline-flex items-center px-4 py-2 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 border-transparent text-white bg-blue-600 hover:bg-blue-700") %>
-
-  <%= primary_form_action_button do %>
-    Submit Order
-  <% end %>
+  <%= button_to("Submit", submit_order_path(@view_model.order_id), class: "mr-3 ml-3 inline-flex items-center px-4 py-2 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 border-transparent text-white bg-blue-600 hover:bg-blue-700") %>
 <% end %>
 
 <table class="w-full">
@@ -55,27 +37,6 @@
   <% end %>
   </tbody>
   <tfoot class="border-t-4">
-    <% if discounted_value != total_value %>
-      <tr class="border-t">
-        <td class="py-2" colspan="3">Before discounts</td>
-        <td class="py-2" id="<%= "orders_order_#{@order_id}_total_value" %>"><%= number_to_currency(total_value) %></td>
-      </tr>
-    <% end %>
-    <% if percentage_discount %>
-      <tr class="border-t">
-        <td class="py-2" colspan="3">General discount</td>
-        <td class="py-2" id="<%= "orders_order_#{@order_id}_percentage_discount" %>"><%= percentage_discount %>%</td>
-        <td class="py-2 text-right" colspan="2"><%= button_to "Reset", reset_discount_order_path(id: @order_id), {method: :post, class: "hover:underline text-blue-500"} %></td>
-      </tr>
-    <% end %>
-    <% if @time_promotions.present? %>
-      <% @time_promotions.each do |time_promotion| %>
-        <tr class="border-t">
-          <td class="py-2" colspan="3">Promotion: <%= time_promotion.label %> (if you buy before <%= time_promotion.end_time %>)</td>
-          <td class="py-2"><%= time_promotion.discount %>%</td>
-        </tr>
-      <% end %>
-    <% end %>
     <tr class="border-t">
       <td class="py-2" colspan="3">Total</td>
       <td class="py-2"><%= number_to_currency(@view_model.total_price) %></td>
@@ -99,15 +60,4 @@
   <%= form_action_button do %>
     Apply coupon
   <% end %>
-<% end %>
-
-<%= form_tag({controller: "orders", action: "create"}, method: "post", id: "form") do %>
-  <%= hidden_field_tag(:order_id, @order_id) %>
-
-  <div class="mt-8">
-    <label for="customer" class="block font-bold">
-      Customer
-    </label>
-    <%= select_tag(:customer_id, options_from_collection_for_select(@customers, :id, :name), id: "customer", class: "mt-1 focus:ring-blue-500 focus:border-blue-500 block shadow-sm sm:text-sm border-gray-300 rounded-md") %>
-  </div>
 <% end %>
