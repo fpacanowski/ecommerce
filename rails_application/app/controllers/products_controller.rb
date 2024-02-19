@@ -1,13 +1,13 @@
 class ProductsController < ApplicationController
   def index
-    @products = MainProduct
-      .includes(:pricing_product)
-      .includes(:inventory_product)
+    @products = ArProduct
+      .includes(:product_price)
+      .includes(:product_availability)
       .all
   end
 
   def show
-    @product = MainProduct.find(params[:id])
+    @product = ArProduct.find(params[:id])
   end
 
   def new

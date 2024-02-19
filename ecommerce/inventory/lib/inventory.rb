@@ -56,7 +56,7 @@ module Inventory
     def modify_product(product_id, &block)
       @repository.with_aggregate(InventoryEntry.new(product_id), "InventoryProduct$#{product_id}", &block)
       availability = get_availability(product_id)
-      InventoryProduct.find_or_create_by!(id: product_id).update!(availability:)
+      ArProductAvailability.find_or_create_by!(id: product_id).update!(availability:)
     end
 
     def get_reservation_product_list(order_id)

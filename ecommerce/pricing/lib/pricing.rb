@@ -126,7 +126,7 @@ module Pricing
         .read.of_type([PriceSet])
         .map { _1.data.values_at(:product_id, :price) }
         .each do |product_id, price|
-          PricingProduct.find_or_create_by!(id: product_id).update!(price:)
+          ArProductPrice.find_or_create_by!(id: product_id).update!(price:)
       end
     end
 

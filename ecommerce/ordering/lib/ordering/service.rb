@@ -59,9 +59,9 @@ module Ordering
         .compact
         .uniq
       orders = order_ids.map { get_order(_1) }
-      Orders::Order.destroy_all
+      ArOrder.destroy_all
       orders.each do |o|
-        Orders::Order.create(uid: o.id, state: o.state, number: o.number)
+        ArOrder.create(uid: o.id, state: o.state, number: o.number)
       end
     end
   end

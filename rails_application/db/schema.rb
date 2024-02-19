@@ -104,7 +104,7 @@ ActiveRecord::Schema[7.0].define(version: 2023_09_06_105318) do
     t.index ["stream", "position"], name: "index_event_store_events_in_streams_on_stream_and_position", unique: true
   end
 
-  create_table "inventory_products", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+  create_table "product_availabilities", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.integer "availability"
   end
 
@@ -150,15 +150,7 @@ ActiveRecord::Schema[7.0].define(version: 2023_09_06_105318) do
   create_table "orders", force: :cascade do |t|
     t.uuid "uid", null: false
     t.string "number"
-    t.string "customer"
     t.string "state"
-    t.decimal "percentage_discount", precision: 8, scale: 2
-    t.decimal "total_value", precision: 8, scale: 2
-    t.decimal "discounted_value", precision: 8, scale: 2
-    t.decimal "happy_hour_value", precision: 8, scale: 2
-    t.datetime "total_value_updated_at"
-    t.datetime "discount_updated_at"
-    t.index ["uid"], name: "index_orders_on_uid", unique: true
   end
 
   create_table "orders_customers", force: :cascade do |t|
@@ -177,16 +169,12 @@ ActiveRecord::Schema[7.0].define(version: 2023_09_06_105318) do
     t.string "state"
   end
 
-  create_table "pricing_products", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+  create_table "product_prices", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.decimal "price", precision: 8, scale: 2
   end
 
   create_table "products", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "name"
-    t.integer "stock_level"
-    t.datetime "registered_at", precision: nil
-    t.string "vat_rate_code"
-    t.text "current_prices_calendar"
   end
 
   create_table "public_offer_products", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

@@ -56,10 +56,8 @@ module ProductCatalog
         .read.of_type([ProductRegistered, ProductRenamed])
         .map { [_1.data.fetch(:product_id), _1.data.fetch(:name)] }
         .each do |product_id, name|
-          Products::Product.find_or_create_by!(id: product_id).update!(name:)
+          ArProduct.find_or_create_by!(id: product_id).update!(name:)
         end
-
-      # Products::Product.find_or_create_by!(id: product_id).update!(name:)
     end
   end
 

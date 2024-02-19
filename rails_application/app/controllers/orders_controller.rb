@@ -36,11 +36,11 @@ class OrdersController < ApplicationController
   end
 
   def index
-    @orders = Orders::Order.order("id DESC").page(params[:page]).per(10)
+    @orders = ArOrder.order("id DESC").page(params[:page]).per(10)
   end
 
   def show
-    order = Orders::Order.find_by(uid: order_id)
+    order = ArOrder.find_by(uid: order_id)
     priced_order = application_service.price_order(order_id)
     products = priced_order.lines.map(&:product_id)
       .map { |product_id| [product_id, product_service.get_product_name(product_id)] }
@@ -72,16 +72,15 @@ class OrdersController < ApplicationController
   end
 
   def edit
-    order = ordering_service.get_order(order_id)
     priced_order = application_service.price_order(order_id)
     products_by_id = priced_order.lines.index_by(&:product_id)
     lines = Products::Product.all.map do |product|
       line = products_by_id[product.id]
-      quantity = order.as_data.fetch(product.id, 0)
+      quantity = line&.quantity || 0
       {
         product_id: product.id,
         product_name: product.name,
-        quantity: line&.quantity || 0,
+        quantity: quantity,
         unit_price: line&.unit_price,
         total_price: line&.total_price,
         display_remove_button: quantity > 0,
