@@ -7,8 +7,8 @@ class ApplicationController < ActionController::Base
     Rails.configuration.command_bus
   end
 
-  def application_service
-    ApplicationService.new(
+  def orchestration_service
+    Orchestration::OrchestrationService.new(
       ordering_service,
       inventory_service,
       pricing_service,

@@ -46,7 +46,7 @@ class OrdersController < ApplicationController
 
   def show
     order = ArOrder.find_by(uid: order_id)
-    priced_order = application_service.price_order(order_id)
+    priced_order = orchestration_service.price_order(order_id)
     products = priced_order.lines.map(&:product_id)
       .map { |product_id| [product_id, product_service.get_product_name(product_id)] }
       .to_h
@@ -77,7 +77,7 @@ class OrdersController < ApplicationController
   end
 
   def edit
-    priced_order = application_service.price_order(order_id)
+    priced_order = orchestration_service.price_order(order_id)
     products_by_id = priced_order.lines.index_by(&:product_id)
     lines = Products::Product.all.map do |product|
       line = products_by_id[product.id]
@@ -111,7 +111,7 @@ class OrdersController < ApplicationController
   end
 
   def add_item
-    application_service.add_item_to_order(order_id, params[:product_id])
+    orchestration_service.add_item_to_order(order_id, params[:product_id])
     redirect_to edit_order_path(order_id)
   rescue ApplicationService::InsufficientQuantity
     redirect_to edit_order_path(params[:id]),
@@ -119,22 +119,22 @@ class OrdersController < ApplicationController
   end
 
   def remove_item
-    application_service.remove_item_from_order(order_id, params[:product_id])
+    orchestration_service.remove_item_from_order(order_id, params[:product_id])
     redirect_to edit_order_path(order_id)
   end
 
   def submit
-    application_service.submit_order(order_id)
+    orchestration_service.submit_order(order_id)
     redirect_to order_path(order_id)
   end
 
   def pay
-    application_service.handle_successful_payment(order_id)
+    orchestration_service.handle_successful_payment(order_id)
     redirect_to orders_path
   end
 
   def cancel
-    application_service.cancel_order(order_id)
+    orchestration_service.cancel_order(order_id)
     redirect_to orders_path, notice: "Order cancelled"
   end
 
