@@ -83,15 +83,14 @@ module Pricing
             name:, code:, discount:,
           }
         ),
-        stream_name: stream_name(product_id)
+        stream_name: "Coupons"
       )
     end
 
     def apply_coupon(order_id, coupon_code)
-      coupons_by_code = {'ddd' => {discount: 10}}
       raise InvalidCode.new unless coupons_by_code.has_key?(coupon_code)
 
-      discount = coupons_by_code.fetch(coupon_code).fetch(:discount)
+      discount = coupons_by_code.fetch(coupon_code).to_i
       @event_store.publish(
         DiscountApplied.new(
           data: {code: coupon_code, discount: discount}
@@ -102,9 +101,7 @@ module Pricing
 
     def reset_discount(order_id)
       @event_store.publish(
-        DiscountReset.new(
-          data: {}
-        ),
+        DiscountReset.new(data: {}),
         stream_name: "Pricing::OrderCoupons$#{order_id}"
       )
     end
@@ -158,6 +155,14 @@ module Pricing
       .data
       .fetch(:price)
 
+    end
+
+    def coupons_by_code
+      @event_store
+        .read
+        .stream("Coupons")
+        .map { _1.data.values_at(:code, :discount) }
+        .to_h
     end
 
     def update_read_model

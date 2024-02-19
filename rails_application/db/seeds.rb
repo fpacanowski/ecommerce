@@ -1,20 +1,5 @@
 require "#{Rails.root}/config/environment.rb"
 
-command_bus = Rails.configuration.command_bus
-
-module Products
-  class Product < ApplicationRecord
-    self.table_name = "products"
-  end
-end
-
-module Pricing
-  class Product < ApplicationRecord
-    self.table_name = "pricing_products"
-  end
-end
-
-
 # [
 #   ["BigCorp Ltd", "bigcorp", "12345"],
 #   ["MegaTron Gmbh", "megatron", "qwerty"],
@@ -36,21 +21,6 @@ end
 
 # end
 
-# [
-#   ["DDDVeteran", 'ddd', 5],
-#   ["VIP", 'vip', 15],
-#   ["Addict", 'product_addict', 20]
-# ].each do |coupon|
-#   command_bus.call(
-#     Pricing::RegisterCoupon.new(
-#       coupon_id: SecureRandom.uuid,
-#       name: coupon[0],
-#       code: coupon[1],
-#       discount: coupon[2]
-#     )
-#   )
-# end
-
 event_store = Rails.configuration.event_store
 aggregate_root_repository = AggregateRoot::Repository.new(event_store)
 pricing_service = Pricing::PricingService.new(event_store)
@@ -66,4 +36,12 @@ inventory_service = Inventory::InventoryService.new(aggregate_root_repository, e
   product_id = product_service.register_product(name)
   pricing_service.set_price(product_id, price)
   inventory_service.make_manual_adjustment(product_id, 10)
+end
+
+[
+  ["DDDVeteran", 'ddd', 5],
+  ["VIP", 'vip', 15],
+  ["Addict", 'product_addict', 20]
+].each do |name, code, discount|
+  pricing_service.register_coupon(name, code, discount)
 end
