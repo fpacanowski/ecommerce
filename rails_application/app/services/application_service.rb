@@ -37,8 +37,8 @@ class ApplicationService
 
   def price_order(order_id)
     order = @ordering_service.get_order(order_id)
-    discounts = @pricing_service.get_applicable_discounts(order_id)
-    @pricing_service.price_order(order.product_list, discounts)
+    discount = @pricing_service.get_applicable_discount(order_id)
+    @pricing_service.price_order(order.product_list, discount)
   end
 
   def handle_successful_payment(order_id)

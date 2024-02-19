@@ -19,6 +19,11 @@ class OrdersController < ApplicationController
     end
   end
 
+  class DiscountViewModel < Dry::Struct
+    attribute :discounted_price, Infra::Types::Price
+    attribute :final_price, Infra::Types::Price
+  end
+
   class EditViewModel < Dry::Struct
     include Dry.Types
     attribute :order_id, String
@@ -32,7 +37,7 @@ class OrdersController < ApplicationController
     end
     attribute :final_price, Infra::Types::Price
     attribute :total_price, Infra::Types::Price
-    attribute :discount, Infra::Types::Price
+    attribute :discount, DiscountViewModel.optional
   end
 
   def index
@@ -58,7 +63,7 @@ class OrdersController < ApplicationController
       order_number: order.number || '',
       order_id: order_id,
       lines: lines,
-      total_price: priced_order.total_price,
+      total_price: priced_order.final_price,
       buttons: {
         edit: order.state == 'draft',
         pay: order.state == 'submitted',
@@ -87,22 +92,22 @@ class OrdersController < ApplicationController
       }
     end
 
+    discount = nil
+    unless priced_order.discount.nil?
+      discount = {
+        discounted_price: priced_order.discounted_price,
+        final_price: priced_order.final_price,
+      }
+    end
     @view_model = EditViewModel.new(
       order_id: order_id,
       lines: lines,
       total_price: priced_order.total_price,
-      discount: priced_order.discount,
+      discount: discount,
       final_price: priced_order.final_price,
     )
 
     render :edit
-  end
-
-  def apply_coupon
-    pricing_service.apply_coupon(order_id, params[:coupon_code])
-    redirect_to edit_order_path(order_id), notice: 'Coupon applied'
-  rescue Pricing::InvalidCode
-    redirect_to edit_order_path(order_id), alert: 'Invalid code!'
   end
 
   def add_item
@@ -131,6 +136,18 @@ class OrdersController < ApplicationController
   def cancel
     application_service.cancel_order(order_id)
     redirect_to orders_path, notice: "Order cancelled"
+  end
+
+  def apply_coupon
+    pricing_service.apply_coupon(order_id, params[:coupon_code])
+    redirect_to edit_order_path(order_id), notice: 'Coupon applied'
+  rescue Pricing::InvalidCode
+    redirect_to edit_order_path(order_id), alert: 'Invalid code!'
+  end
+
+  def reset_discount
+    pricing_service.reset_discount(order_id)
+    redirect_to edit_order_path(order_id), notice: 'Discount reset'
   end
 
   private

@@ -50,13 +50,8 @@ module Ordering
       apply OrderCancelled.new(data: { order_id: @id })
     end
 
-    # TODO: remove this method
-    def as_data
-      @basket.order_lines.freeze
-    end
-
     def product_list
-      products = as_data.map do |product_id, quantity|
+      products = @basket.order_lines.map do |product_id, quantity|
         {product_id:, quantity:}
       end
       Infra::Types::ProductList.new(products:)

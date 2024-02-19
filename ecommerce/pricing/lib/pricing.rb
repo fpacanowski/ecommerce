@@ -29,7 +29,23 @@ module Pricing
     @event_store
   end
 
+  class DiscountApplied < Infra::Event
+  end
+
+  class DiscountReset < Infra::Event
+  end
+
+
   InvalidCode = Class.new(StandardError)
+
+  class Discount < Dry::Struct
+    attribute :code, Infra::Types::String
+    attribute :discount_percentage, Infra::Types::Integer
+
+    def discounted_amount(full_amount)
+      full_amount * discount_percentage * 0.01
+    end
+  end
 
   class PricedOrder < Dry::Struct
     attribute :lines, Infra::Types::Array do
@@ -38,8 +54,9 @@ module Pricing
       attribute :unit_price, Infra::Types::Price
       attribute :total_price, Infra::Types::Price
     end
-    attribute :discount, Infra::Types::Price.optional
+    attribute :discount, Discount.optional
     attribute :total_price, Infra::Types::Price
+    attribute :discounted_price, Infra::Types::Price
     attribute :final_price, Infra::Types::Price
   end
 
@@ -58,6 +75,18 @@ module Pricing
       update_read_model
     end
 
+    def register_coupon(name, code, discount)
+      @event_store.publish(
+        CouponRegistered.new(
+          data: {
+            coupon_id: SecureRandom.uuid,
+            name:, code:, discount:,
+          }
+        ),
+        stream_name: stream_name(product_id)
+      )
+    end
+
     def apply_coupon(order_id, coupon_code)
       coupons_by_code = {'ddd' => {discount: 10}}
       raise InvalidCode.new unless coupons_by_code.has_key?(coupon_code)
@@ -71,18 +100,29 @@ module Pricing
       )
     end
 
-    def get_applicable_discounts(order_id)
-      projection = RubyEventStore::Projection
-      .from_stream("Pricing::OrderCoupons$#{order_id}")
-      .init(-> { {} })
-      .when(
-        [DiscountApplied],
-        ->(state, event) { state[:discount] = event.data[:discount] }
-        )
-      [{discount: projection.run(@event_store)[:discount]}]
+    def reset_discount(order_id)
+      @event_store.publish(
+        DiscountReset.new(
+          data: {}
+        ),
+        stream_name: "Pricing::OrderCoupons$#{order_id}"
+      )
     end
 
-    def price_order(product_list, discounts)
+    def get_applicable_discount(order_id)
+      discount_event = @event_store
+      .read
+      .stream("Pricing::OrderCoupons$#{order_id}")
+      .last
+      return nil if discount_event.nil?
+      return nil if discount_event.event_type == 'Pricing::DiscountReset'
+      Discount.new(
+        code: discount_event.data.fetch(:code),
+        discount_percentage: discount_event.data.fetch(:discount)
+      )
+    end
+
+    def price_order(product_list, discount)
       lines = product_list.products.map do |product|
         price = get_price(product.product_id)
         {
@@ -93,17 +133,16 @@ module Pricing
         }
       end
       total_price = lines.map { _1.fetch(:total_price) }.sum
-      # discounted_amount = if !discounts.empty?
-      #   discounts.first.fetch(:discount) * total_price * 0.01
-      # else
-      #   0
-      # end
-      discounted_amount = 0
-      final_price = total_price - discounted_amount
+      discounted_price = 0
+      if !discount.nil?
+        discounted_price = discount.discounted_amount(total_price)
+      end
+      final_price = total_price - discounted_price
       PricedOrder.new(
         lines: lines,
-        discount: discounts.empty? ? nil : discounted_amount,
+        discount: discount,
         total_price: total_price,
+        discounted_price: discounted_price,
         final_price: final_price
       )
     end
