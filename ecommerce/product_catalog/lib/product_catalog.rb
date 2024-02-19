@@ -1,9 +1,6 @@
 require "infra"
 require "ruby_event_store"
-require_relative "product_catalog/commands"
 require_relative "product_catalog/events"
-require_relative "product_catalog/registration"
-require_relative "product_catalog/naming"
 
 module ProductCatalog
 
